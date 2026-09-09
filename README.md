@@ -21,6 +21,8 @@ Statistics show latest, average, minimum and maximum latency, loss, sent request
 
 **Local network** lists active adapters, IP addresses and gateways. It refreshes every 15 seconds or with **Refresh**. Hover over an address cell for its full contents. This panel describes adapters, not per-destination routing.
 
+Drag the separators between **Hosts**, **Ping log**, **Session statistics**, and **Local network** to resize them. Each panel can be closed from its header and restored from **View**. The arrow button opens a live panel in its own resizable window; closing that window returns it to the dashboard. **Local network** uses its available height and scrolls only when its rows no longer fit.
+
 App-owned dialogs are English. Windows-owned file pickers and system menus follow the Windows display language. User-entered host/group names and adapter names are not translated.
 
 ## Hosts and configuration

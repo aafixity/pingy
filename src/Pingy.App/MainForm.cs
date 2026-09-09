@@ -4,7 +4,7 @@ using Pingy.Core;
 
 namespace Pingy.App;
 
-internal sealed class MainForm : Form
+internal sealed partial class MainForm : Form
 {
     private static readonly Color Bg = UiTheme.Canvas, PanelColor = UiTheme.Surface, Ink = UiTheme.Ink, Muted = UiTheme.Muted, Accent = UiTheme.Coral, Line = UiTheme.Line;
     private AppConfig _config;
@@ -16,6 +16,12 @@ internal sealed class MainForm : Form
     private readonly CheckBox _follow = new() { Text = "Auto-scroll", Checked = true, AutoSize = true, ForeColor = Ink, Margin = new Padding(14, 12, 8, 0) };
     private readonly CleanGrid _log = Grid(), _stats = Grid();
     private readonly CleanGrid _network = Grid();
+    private readonly SoftButton _view = new("View");
+    private readonly ContextMenuStrip _viewMenu = new();
+    private readonly Dictionary<DashboardCard, bool> _panelVisible = [];
+    private readonly Dictionary<DashboardCard, Form> _floatingPanels = [];
+    private SplitContainer _mainSplit = null!, _upperSplit = null!, _rightSplit = null!;
+    private DashboardCard _hostsCard = null!, _logCard = null!, _statsCard = null!, _networkCard = null!;
     private readonly Dictionary<Guid, PingStatistics> _statistics = [];
     private readonly System.Windows.Forms.Timer _clock = new() { Interval = 1000 };
     private readonly System.Windows.Forms.Timer _networkClock = new() { Interval = 15000 };
@@ -68,13 +74,13 @@ internal sealed class MainForm : Form
         FormClosing += ClosingAsync;
         Shown += async (_, _) =>
         {
-            await RefreshNetworkAsync(); _networkClock.Start();
+            SetInitialSplitterPositions(); await RefreshNetworkAsync(); _networkClock.Start();
             if (warning != null) UiDialogs.Show(this, warning, "Settings", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         };
         RebuildTree(); PrepareSession([]);
     }
 
-    private void BuildLayout()
+    private void BuildLegacyLayout()
     {
         var root = UiTheme.Table(1, 4);
         root.Padding = new Padding(24, 14, 24, 20);
@@ -294,6 +300,22 @@ internal sealed class MainForm : Form
         }
         catch (Exception) { if (!IsDisposed) { _network.EmptyText = "Network information unavailable"; _network.Invalidate(); } }
         finally { _networkLoading = false; }
+    }
+
+    private void ResizeNetworkPanel()
+    {
+        if (_network.Parent is not TableLayoutPanel card || card.Parent is not TableLayoutPanel root) return;
+        const int visibleLimit = 5;
+        var rowsHeight = _network.Rows.Count == 0
+            ? _network.RowTemplate.Height
+            : _network.Rows.Cast<DataGridViewRow>().Take(visibleLimit).Sum(row => row.Height);
+        var title = card.GetControlFromPosition(0, 0)!;
+        // Measure the actual controls, including DPI-scaled padding and row heights.
+        var height = card.Padding.Vertical + card.Margin.Vertical + title.Height + title.Margin.Vertical
+            + _network.Margin.Vertical + _network.ColumnHeadersHeight + rowsHeight + 2;
+        var style = root.RowStyles[root.GetRow(card)];
+        if (style.Height != height) style.Height = height;
+        _network.ScrollBars = _network.Rows.Count > visibleLimit ? ScrollBars.Vertical : ScrollBars.None;
     }
 
     private async Task CreatePortableAsync()
