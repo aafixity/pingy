@@ -1,0 +1,54 @@
+name: Build pingy
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.runtime }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [win-x64, win-x86, win-arm64]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run core tests
+        run: dotnet run --project .\tests\Pingy.Tests\Pingy.Tests.csproj --configuration Release
+
+      - name: Publish portable executable
+        env:
+          PINGY_RUNTIME: ${{ matrix.runtime }}
+        run: .\scripts\publish.ps1 -Runtime $env:PINGY_RUNTIME
+
+      - name: Verify bundled executable and embedded hosts
+        if: matrix.runtime != 'win-arm64'
+        env:
+          PINGY_RUNTIME: ${{ matrix.runtime }}
+        run: dotnet run --project .\tests\Pingy.Tests\Pingy.Tests.csproj --configuration Release -- --portable-smoke "artifacts/$env:PINGY_RUNTIME/pingy.exe" "artifacts/smoke-$env:PINGY_RUNTIME"
+
+      - name: Upload portable executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: pingy-${{ matrix.runtime }}
+          path: artifacts/${{ matrix.runtime }}/pingy.exe
+          if-no-files-found: error
+          retention-days: 30

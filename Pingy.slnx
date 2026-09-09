@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Pingy.Core/Pingy.Core.csproj" />
+    <Project Path="src/Pingy.App/Pingy.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Pingy.Tests/Pingy.Tests.csproj" />
+  </Folder>
+</Solution>
