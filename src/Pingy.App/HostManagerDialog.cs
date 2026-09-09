@@ -10,15 +10,15 @@ namespace Pingy.App;
 /// <summary>Edits a private copy so closing the dialog never changes the active profile.</summary>
 public sealed class HostManagerDialog : Form
 {
-    private static readonly Color PageColor = Color.FromArgb(16, 24, 32);
-    private static readonly Color SurfaceColor = Color.FromArgb(23, 35, 45);
-    private static readonly Color TextColor = Color.FromArgb(229, 237, 242);
-    private static readonly Color MutedColor = Color.FromArgb(151, 171, 184);
-    private static readonly Color AccentColor = Color.FromArgb(89, 214, 178);
-    private static readonly Color BorderColor = Color.FromArgb(47, 67, 81);
+    private static readonly Color PageColor = UiTheme.Canvas;
+    private static readonly Color SurfaceColor = UiTheme.Surface;
+    private static readonly Color TextColor = UiTheme.Ink;
+    private static readonly Color MutedColor = UiTheme.Muted;
+    private static readonly Color AccentColor = UiTheme.Coral;
+    private static readonly Color BorderColor = UiTheme.Line;
 
     private readonly Guid _profileId;
-    private readonly DataGridView _grid = new();
+    private readonly CleanGrid _grid = new() { EmptyText = "No hosts. Add a host or import a configuration." };
     private readonly BindingSource _source = new();
     private readonly Label _summary = new();
     private AppConfig _working;
@@ -33,11 +33,11 @@ public sealed class HostManagerDialog : Form
         _profileId = config.ProfileId;
         Result = config.Clone();
 
-        Text = "pingy — серверы и конфигурация";
+        Text = "Hosts";
         BackColor = PageColor;
         ForeColor = TextColor;
         Font = new Font("Segoe UI", 10F);
-        AutoScaleMode = AutoScaleMode.Dpi;
+        AutoScaleDimensions = new SizeF(96, 96); AutoScaleMode = AutoScaleMode.Dpi; Icon = UiTheme.LoadIcon();
         StartPosition = FormStartPosition.CenterParent;
         MinimumSize = new Size(850, 550);
         Size = new Size(1120, 710);
@@ -64,12 +64,12 @@ public sealed class HostManagerDialog : Form
         heading.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         heading.Controls.Add(new Label
         {
-            Text = "Ваши серверы", AutoSize = true, Font = new Font("Segoe UI Semibold", 20F),
+            Text = "Hosts", AutoSize = true, Font = new Font("Segoe UI Semibold", 20F),
             ForeColor = TextColor, Margin = Padding.Empty
         }, 0, 0);
         heading.Controls.Add(new Label
         {
-            Text = "Укажите имя и IP-адрес. Одинаковая группа объединяет серверы; галочка включает их в пинг.",
+            Text = "Name and IP are required. Group and notes are optional.",
             Dock = DockStyle.Fill, ForeColor = MutedColor, Margin = new Padding(0, 5, 0, 0)
         }, 0, 1);
         layout.Controls.Add(heading, 0, 0);
@@ -79,14 +79,15 @@ public sealed class HostManagerDialog : Form
             Dock = DockStyle.Fill, WrapContents = false, AutoScroll = true,
             Margin = Padding.Empty, Padding = Padding.Empty
         };
-        toolbar.Controls.Add(MakeButton("+ Добавить", 126, (_, _) => AddHost(), primary: true));
-        toolbar.Controls.Add(MakeButton("Удалить выбранные", 181, (_, _) => RemoveSelected()));
-        toolbar.Controls.Add(MakeButton("Удалить все", 129, (_, _) => RemoveAll()));
-        toolbar.Controls.Add(MakeButton("Импорт…", 105, (_, _) => ImportConfig()));
-        toolbar.Controls.Add(MakeButton("Экспорт…", 111, (_, _) => ExportConfig()));
+        toolbar.Controls.Add(MakeButton("+ Add host", 126, (_, _) => AddHost(), primary: true));
+        toolbar.Controls.Add(MakeButton("Remove selected", 181, (_, _) => RemoveSelected()));
+        toolbar.Controls.Add(MakeButton("Remove all", 129, (_, _) => RemoveAll()));
+        toolbar.Controls.Add(MakeButton("Import…", 105, (_, _) => ImportConfig()));
+        toolbar.Controls.Add(MakeButton("Export…", 111, (_, _) => ExportConfig()));
         layout.Controls.Add(toolbar, 0, 1);
 
         ConfigureGrid();
+        UiTheme.StyleGrid(_grid, editable: true);
         layout.Controls.Add(_grid, 0, 2);
 
         _summary.Dock = DockStyle.Fill;
@@ -101,12 +102,12 @@ public sealed class HostManagerDialog : Form
         footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 144));
         footer.Controls.Add(new Label
         {
-            Text = "Изменения применятся после сохранения.", Dock = DockStyle.Fill,
+            Text = "", Dock = DockStyle.Fill,
             ForeColor = MutedColor, TextAlign = ContentAlignment.MiddleLeft, Margin = Padding.Empty
         }, 0, 0);
-        var cancel = MakeButton("Отмена", 108, (_, _) => { DialogResult = DialogResult.Cancel; Close(); });
+        var cancel = MakeButton("Cancel", 108, (_, _) => { DialogResult = DialogResult.Cancel; Close(); });
         cancel.DialogResult = DialogResult.Cancel;
-        var save = MakeButton("Сохранить", 144, (_, _) => SaveAndClose(), primary: true);
+        var save = MakeButton("Save", 144, (_, _) => SaveAndClose(), primary: true);
         save.Margin = Padding.Empty;
         footer.Controls.Add(cancel, 1, 0);
         footer.Controls.Add(save, 2, 0);
@@ -114,6 +115,7 @@ public sealed class HostManagerDialog : Form
         CancelButton = cancel;
 
         BindHosts();
+        _grid.ClearSelection();
     }
 
     private void ConfigureGrid()
@@ -153,15 +155,15 @@ public sealed class HostManagerDialog : Form
         _grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(20, 31, 40);
         _grid.Columns.Add(new DataGridViewCheckBoxColumn
         {
-            Name = "Enabled", DataPropertyName = nameof(HostEntry.Enabled), HeaderText = "Вкл.",
+            Name = "Enabled", DataPropertyName = nameof(HostEntry.Enabled), HeaderText = "On",
             Width = 57, MinimumWidth = 50, Resizable = DataGridViewTriState.False,
             AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
             DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleCenter, Padding = Padding.Empty }
         });
-        AddTextColumn("Name", nameof(HostEntry.Name), "Имя сервера", 170, 115);
-        AddTextColumn("Address", nameof(HostEntry.Address), "IP-адрес", 170, 135);
-        AddTextColumn("Group", nameof(HostEntry.Group), "Группа", 135, 100);
-        AddTextColumn("Description", nameof(HostEntry.Description), "Описание (необязательно)", 220, 160);
+        AddTextColumn("Name", nameof(HostEntry.Name), "Name", 170, 115);
+        AddTextColumn("Address", nameof(HostEntry.Address), "IP address", 170, 135);
+        AddTextColumn("Group", nameof(HostEntry.Group), "Group", 135, 100);
+        AddTextColumn("Description", nameof(HostEntry.Description), "Notes (optional)", 220, 160);
         _grid.DataSource = _source;
         _grid.CurrentCellDirtyStateChanged += (_, _) =>
         {
@@ -172,7 +174,7 @@ public sealed class HostManagerDialog : Form
         _grid.DataError += (_, e) =>
         {
             e.ThrowException = false;
-            if (e.RowIndex >= 0) _grid.Rows[e.RowIndex].ErrorText = "Проверьте значение в этой строке.";
+            if (e.RowIndex >= 0) _grid.Rows[e.RowIndex].ErrorText = "Check the value in this row.";
         };
         _grid.EditingControlShowing += (_, e) =>
         {
@@ -193,19 +195,8 @@ public sealed class HostManagerDialog : Form
 
     private static Button MakeButton(string text, int width, EventHandler handler, bool primary = false)
     {
-        var button = new Button
-        {
-            Text = text, Width = width, Height = 38, FlatStyle = FlatStyle.Flat,
-            BackColor = primary ? AccentColor : SurfaceColor,
-            ForeColor = primary ? PageColor : TextColor,
-            Font = new Font("Segoe UI Semibold", 9.5F), Cursor = Cursors.Hand,
-            Margin = new Padding(0, 0, 9, 0), UseVisualStyleBackColor = false
-        };
-        button.FlatAppearance.BorderColor = primary ? AccentColor : BorderColor;
-        button.FlatAppearance.BorderSize = primary ? 0 : 1;
-        button.FlatAppearance.MouseOverBackColor = primary ? Color.FromArgb(118, 231, 197) : Color.FromArgb(36, 53, 65);
-        button.Click += handler;
-        return button;
+        var button = new SoftButton(text, primary) { Width = width, Height = 40, Margin = new Padding(0, 0, 9, 0) };
+        button.Click += handler; return button;
     }
 
     private void BindHosts()
@@ -219,7 +210,7 @@ public sealed class HostManagerDialog : Form
     {
         var groups = _rows.Select(host => host.Group?.Trim() ?? string.Empty)
             .Where(group => group.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        _summary.Text = $"Серверов: {_rows.Count}     Включено: {_rows.Count(host => host.Enabled)}     Групп: {groups}     •     Двойной щелчок или F2 — редактирование";
+        _summary.Text = $"{_rows.Count} hosts  ·  {_rows.Count(host => host.Enabled)} enabled  ·  {groups} groups";
     }
 
     private void AddHost()
@@ -228,7 +219,7 @@ public sealed class HostManagerDialog : Form
         _source.EndEdit();
         _rows.Add(new HostEntry
         {
-            Id = Guid.NewGuid(), Name = "Новый сервер", Address = string.Empty,
+            Id = Guid.NewGuid(), Name = "New host", Address = string.Empty,
             Group = string.Empty, Description = string.Empty, Enabled = true
         });
         int index = _rows.Count - 1;
@@ -247,12 +238,12 @@ public sealed class HostManagerDialog : Form
             .Select(row => row.DataBoundItem).OfType<HostEntry>().ToArray();
         if (selected.Length == 0)
         {
-            MessageBox.Show(this, "Выберите строки, которые нужно удалить. Для нескольких строк удерживайте Ctrl или Shift.",
-                "Удаление серверов", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            UiDialogs.Show(this, "Select rows to remove. Hold Ctrl or Shift to select multiple rows.",
+                "Remove hosts", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
-        if (MessageBox.Show(this, $"Удалить выбранные серверы ({selected.Length})?\nИзменение применится после сохранения.",
-                "Удаление серверов", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+        if (UiDialogs.Show(this, $"Remove {selected.Length} selected hosts?",
+                "Remove hosts", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
             return;
         _grid.CancelEdit();
         foreach (var host in selected) _rows.Remove(host);
@@ -262,8 +253,8 @@ public sealed class HostManagerDialog : Form
     private void RemoveAll()
     {
         if (_rows.Count == 0) return;
-        if (MessageBox.Show(this, $"Удалить все серверы ({_rows.Count})?\nИзменение применится после сохранения.",
-                "Очистить список", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
+        if (UiDialogs.Show(this, $"Remove all {_rows.Count} hosts?",
+                "Remove all hosts", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes)
             return;
         _grid.CancelEdit();
         _rows.Clear();
@@ -272,7 +263,7 @@ public sealed class HostManagerDialog : Form
 
     private AppConfig CaptureValidated()
     {
-        if (!_grid.EndEdit()) throw new FormatException("Завершите редактирование текущей ячейки.");
+        if (!_grid.EndEdit()) throw new FormatException("Finish editing the current cell.");
         _source.EndEdit();
         var candidate = _working.Clone();
         candidate.Hosts = _rows.Select(host => host.Clone()).ToList();
@@ -290,7 +281,7 @@ public sealed class HostManagerDialog : Form
         }
         catch (FormatException ex)
         {
-            ShowError("Проверьте серверы", ex.Message);
+            ShowError("Check hosts", ex.Message);
         }
     }
 
@@ -298,14 +289,14 @@ public sealed class HostManagerDialog : Form
     {
         using var picker = new OpenFileDialog
         {
-            Title = "Импорт конфигурации pingy", Filter = "Конфигурация pingy (*.json)|*.json|Все файлы (*.*)|*.*",
+            Title = "Import configuration", Filter = "Pingy configuration (*.json)|*.json|All files (*.*)|*.*",
             CheckFileExists = true, Multiselect = false
         };
         if (picker.ShowDialog(this) != DialogResult.OK) return;
         try
         {
             if (new FileInfo(picker.FileName).Length > ConfigCodec.MaxConfigBytes)
-                throw new FormatException("Конфигурация не должна превышать 4 МБ.");
+                throw new FormatException("Configuration must not exceed 4 MB.");
             var imported = ConfigCodec.Parse(File.ReadAllText(picker.FileName, Encoding.UTF8));
             ConfigCodec.Validate(imported);
             _grid.EndEdit();
@@ -330,12 +321,12 @@ public sealed class HostManagerDialog : Form
             }
             BindHosts();
             _summary.Text = choice.ReplaceExisting
-                ? $"Импортировано серверов: {_rows.Count}. Нажмите «Сохранить», чтобы применить изменения."
-                : $"Добавлено: {imported.Hosts.Count - duplicates}. Совпадающих IP пропущено: {duplicates}. Нажмите «Сохранить».";
+                ? $"{_rows.Count} hosts imported. Save to apply."
+                : $"Added {imported.Hosts.Count - duplicates} hosts. Skipped {duplicates} duplicate IPs. Save to apply.";
         }
         catch (Exception ex) when (ex is FormatException or IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
-            ShowError("Не удалось импортировать конфигурацию", ex.Message);
+            ShowError("Could not import configuration", ex.Message);
         }
     }
 
@@ -352,21 +343,21 @@ public sealed class HostManagerDialog : Form
             var config = CaptureValidated();
             using var picker = new SaveFileDialog
             {
-                Title = "Экспорт конфигурации pingy", Filter = "Конфигурация pingy (*.json)|*.json",
+                Title = "Export configuration", Filter = "Pingy configuration (*.json)|*.json",
                 DefaultExt = "json", AddExtension = true, FileName = "pingy-hosts.json", OverwritePrompt = true
             };
             if (picker.ShowDialog(this) != DialogResult.OK) return;
             File.WriteAllText(picker.FileName, ConfigCodec.Serialize(config), new UTF8Encoding(false));
-            _summary.Text = $"Экспортировано серверов: {config.Hosts.Count} → {Path.GetFileName(picker.FileName)}";
+            _summary.Text = $"Exported {config.Hosts.Count} hosts to {Path.GetFileName(picker.FileName)}";
         }
         catch (Exception ex) when (ex is FormatException or IOException or UnauthorizedAccessException)
         {
-            ShowError("Не удалось экспортировать конфигурацию", ex.Message);
+            ShowError("Could not export configuration", ex.Message);
         }
     }
 
     private void ShowError(string title, string detail) =>
-        MessageBox.Show(this, detail, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        UiDialogs.Show(this, detail, title, MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
     protected override void Dispose(bool disposing)
     {
@@ -380,11 +371,11 @@ public sealed class HostManagerDialog : Form
 
         public ImportChoiceDialog(string fileName, int currentCount, int incomingCount, int enabledCount, int duplicateCount)
         {
-            Text = "Как импортировать серверы?";
+            Text = "Import hosts";
             BackColor = PageColor;
             ForeColor = TextColor;
             Font = new Font("Segoe UI", 10F);
-            AutoScaleMode = AutoScaleMode.Dpi;
+            AutoScaleDimensions = new SizeF(96, 96); AutoScaleMode = AutoScaleMode.Dpi; Icon = UiTheme.LoadIcon();
             StartPosition = FormStartPosition.CenterParent;
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -405,7 +396,7 @@ public sealed class HostManagerDialog : Form
             Controls.Add(layout);
             layout.Controls.Add(new Label
             {
-                Text = "Импорт серверов", AutoSize = true, Font = new Font("Segoe UI Semibold", 18F),
+                Text = "Import hosts", AutoSize = true, Font = new Font("Segoe UI Semibold", 18F),
                 ForeColor = TextColor, Margin = Padding.Empty
             }, 0, 0);
             layout.Controls.Add(new Label
@@ -415,12 +406,12 @@ public sealed class HostManagerDialog : Form
             }, 0, 1);
             layout.Controls.Add(new Label
             {
-                Text = $"В файле: {incomingCount} серверов, включено: {enabledCount}.\nВ текущем списке: {currentCount}. Совпадающих IP: {duplicateCount}.",
+                Text = $"File: {incomingCount} hosts, {enabledCount} enabled.\nCurrent: {currentCount} hosts. Duplicate IPs: {duplicateCount}.",
                 Dock = DockStyle.Fill, ForeColor = TextColor, Margin = Padding.Empty
             }, 0, 2);
             layout.Controls.Add(new Label
             {
-                Text = "Заменить — загрузить список и настройки из файла.\n\nДобавить — сохранить текущие настройки и серверы; добавить новые IP. Существующие IP сохраняют свои имена и группы.",
+                Text = "Replace all imports the host list and settings from the file.\n\nAdd new keeps the current hosts and settings, and adds new IPs. Existing IPs keep their names and groups.",
                 Dock = DockStyle.Fill, ForeColor = MutedColor, Margin = Padding.Empty
             }, 0, 3);
             var buttons = new FlowLayoutPanel
@@ -428,16 +419,16 @@ public sealed class HostManagerDialog : Form
                 Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft,
                 WrapContents = false, Margin = Padding.Empty
             };
-            var cancel = MakeButton("Отмена", 105, (_, _) => { DialogResult = DialogResult.Cancel; Close(); });
+            var cancel = MakeButton("Cancel", 105, (_, _) => { DialogResult = DialogResult.Cancel; Close(); });
             cancel.Margin = Padding.Empty;
             cancel.DialogResult = DialogResult.Cancel;
-            var add = MakeButton("Добавить", 125, (_, _) =>
+            var add = MakeButton("Add new", 125, (_, _) =>
             {
                 ReplaceExisting = false;
                 DialogResult = DialogResult.OK;
                 Close();
             }, primary: true);
-            var replace = MakeButton("Заменить все", 146, (_, _) =>
+            var replace = MakeButton("Replace all", 146, (_, _) =>
             {
                 ReplaceExisting = true;
                 DialogResult = DialogResult.OK;

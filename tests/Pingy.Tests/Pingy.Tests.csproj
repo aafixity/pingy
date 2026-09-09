@@ -8,4 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Pingy.Core/Pingy.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="legacy-defaults.json" LogicalName="Pingy.Tests.legacy-defaults.json" />
+  </ItemGroup>
 </Project>

@@ -28,6 +28,7 @@ if (args.Length > 0)
 var tests = new (string Name, Func<Task> Run)[]
 {
     ("Configuration roundtrip and deep clone", Sync(ConfigRoundtrip)),
+    ("Upgrade removes factory samples and preserves customized hosts", Sync(MigrateSamples)),
     ("Reject invalid configuration", Sync(RejectInvalidConfig)),
     ("Merge preserves existing choices and deduplicates canonical IPs", Sync(MergeConfig)),
     ("Save/load and invalid-save preservation", Sync(StoreConfig)),
@@ -159,6 +160,34 @@ static void ConfigRoundtrip()
     Equal("Router", normalizable.Hosts[0].Name);
     Equal("2001:db8::1", normalizable.Hosts[0].Address);
     True(!string.IsNullOrWhiteSpace(normalizable.Hosts[0].Group), "An empty group should receive a display name.");
+}
+
+static void MigrateSamples()
+{
+    using var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Pingy.Tests.legacy-defaults.json")!;
+    using var reader = new StreamReader(stream);
+    string legacy = reader.ReadToEnd();
+    var config = ConfigCodec.Parse(legacy);
+    var id = config.ProfileId;
+    config.Hosts[1].Enabled = true;
+    config.Hosts.Add(Host("My server", "10.10.10.12"));
+    Equal(3, ProfileMigration.RemoveUnmodifiedSamples(config));
+    Equal(1, config.Hosts.Count);
+    Equal("My server", config.Hosts[0].Name);
+    Equal(id, config.ProfileId);
+    Equal(0, ProfileMigration.RemoveUnmodifiedSamples(config));
+
+    foreach (Action<HostEntry> customize in new Action<HostEntry>[]
+    {
+        h => h.Name = "Office", h => h.Address = "10.20.30.40",
+        h => h.Group = "Custom", h => h.Description = "My notes"
+    })
+    {
+        var customized = ConfigCodec.Parse(legacy);
+        customize(customized.Hosts[1]);
+        Equal(2, ProfileMigration.RemoveUnmodifiedSamples(customized));
+        Equal(1, customized.Hosts.Count);
+    }
 }
 
 static void RejectInvalidConfig()

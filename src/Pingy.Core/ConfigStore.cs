@@ -20,12 +20,12 @@ public sealed class ConfigStore
             if (!File.Exists(_path)) return null;
             using var stream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read);
             if (stream.Length > ConfigCodec.MaxConfigBytes)
-                throw new FormatException("Конфигурация не должна превышать 4 МБ.");
+                throw new FormatException("Configuration must not exceed 4 MB.");
             using var reader = new StreamReader(stream, new UTF8Encoding(false, true), true);
             try { return ConfigCodec.Parse(reader.ReadToEnd()); }
             catch (DecoderFallbackException ex)
             {
-                throw new FormatException("Файл конфигурации содержит некорректный текст UTF-8.", ex);
+                throw new FormatException("Configuration contains invalid UTF-8 text.", ex);
             }
         }
     }

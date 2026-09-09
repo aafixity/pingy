@@ -5,7 +5,7 @@ public sealed class HostEntry
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "";
     public string Address { get; set; } = "";
-    public string Group { get; set; } = "Без группы";
+    public string Group { get; set; } = "Ungrouped";
     public string Description { get; set; } = "";
     public bool Enabled { get; set; } = true;
 

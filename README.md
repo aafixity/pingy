@@ -1,102 +1,80 @@
-# pingy
+# Pingy
 
-Небольшое приложение для Windows: одна кнопка «Старт / Стоп», одновременный ICMP-пинг выбранных IP-адресов и статистика по каждому серверу. Установка и права администратора для обычного запуска не нужны. В переносимую сборку включён .NET — на другом компьютере достаточно открыть `pingy.exe`.
+A portable Windows app for monitoring multiple IP addresses with ICMP ping. Published executables include .NET and run as the current user, without an installer or an administrator prompt.
 
-## Начало работы
+## Use
 
-1. Запустите сборку для архитектуры своего Windows-компьютера.
-2. Откройте **«Управление хостами»**, добавьте имя, IPv4 или IPv6 и при необходимости группу и описание. Нажмите **«Сохранить»**.
-3. Отметьте нужные серверы слева. Галочка у группы включает или выключает всю группу.
-4. При необходимости задайте интервал и тайм-аут в секундах, затем нажмите **«Старт»**.
-5. Нажмите ту же кнопку **«Стоп»**, чтобы закончить сессию. Результаты останутся на экране. Следующий **«Старт»** очистит журнал и статистику и начнёт новую сессию.
+1. Open `pingy.exe`, choose **Manage hosts**, then **Add host**.
+2. Enter a name and literal IPv4/IPv6 address. Group and notes are optional. Press **Save**.
+3. Select hosts or entire groups in the sidebar, set **Interval (s)** and **Timeout (s)**, then press **Start**.
+4. **Stop** keeps the completed session on screen. Starting again resets the log and statistics.
 
-По умолчанию включён только `127.0.0.1` — этот компьютер. Адреса `10.10.10.10` и `10.10.10.11` добавлены как отключённые примеры. Замените их адресами своих серверов.
+The default list is empty. Updates from v1.0 remove its three unchanged factory entries. Entries whose name, address, group or notes were edited are preserved, together with other hosts and settings.
 
-Состав серверов, их выбор и параметры сохраняются между запусками. Чтобы изменить выбор или настройки во время мониторинга, сначала остановите сессию.
+## Interface and results
 
-## Журнал и статистика
+The English interface uses white surfaces, coral `#E7717D`, gray `#C2CAD0`, sand `#C2B9B0`, brown `#7E685A`, and green `#AFD275`. Darker green/red response text maintains readability on white. The supplied penguin artwork is embedded in the executable and used for the window/taskbar icon.
 
-В журнале одна строка соответствует серии проверок: локальное время, затем задержка или результат ошибки для каждого выбранного хоста. Заголовки столбцов всегда видны; столбец времени закреплён при горизонтальной прокрутке. В подсказке к времени доступны дата, миллисекунды и часовой пояс, к результату — подробный статус ответа.
+Tables have flat header backgrounds, alternating rows and subtle horizontal dividers. Headers remain visible; the time column is frozen horizontally. **Auto-scroll** follows new rows. Vertical scrolling pauses it; check it again to resume.
 
-**«Автопрокрутка»** показывает новые строки внизу. Ручная вертикальная прокрутка приостанавливает слежение, чтобы можно было изучить старые результаты. Снова включите галочку, чтобы вернуться к последним строкам. Ячейки журнала и статистики можно выделить и скопировать через **Ctrl+C**, вместе с заголовками.
+Statistics show latest, average, minimum and maximum latency, loss, sent requests and replies. Missing replies count as loss and are excluded from latency averages. Submillisecond responses display as `<1 ms`. The log keeps up to 10,000 rows / 500,000 ping values; statistics cover the whole session. The log is not saved between launches. **Ctrl+C** copies selected cells with headers.
 
-Статистика с начала текущей сессии показывает:
+**Local network** lists active adapters, IP addresses and gateways. It refreshes every 15 seconds or with **Refresh**. Hover over an address cell for its full contents. This panel describes adapters, not per-destination routing.
 
-- последний результат;
-- среднюю, минимальную и максимальную задержку по успешным ответам;
-- процент и количество потерь;
-- количество отправленных запросов и полученных ответов.
+App-owned dialogs are English. Windows-owned file pickers and system menus follow the Windows display language. User-entered host/group names and adapter names are not translated.
 
-Для ограничения расхода памяти журнал хранит до **10 000 последних строк** и до **500 000 значений пинга**; при большом числе серверов старые строки удаляются раньше. Статистика продолжает учитывать всю сессию, включая строки, которых уже нет в журнале. Журнал между запусками не сохраняется.
+## Hosts and configuration
 
-Нижняя панель показывает текущие IP-адреса и шлюзы активных сетевых адаптеров. Она обновляется каждые 15 секунд и по кнопке **«Обновить»**. Это сведения об адаптерах компьютера; маршрут и фактический исходящий адрес для каждого отдельного сервера здесь не определяются.
+Double-click or press **F2** to edit a cell. Ctrl/Shift selects multiple rows for removal. A blank group becomes **Ungrouped**. **Save** applies editor changes; **Cancel** discards them. Host selection and timing changes require stopping first.
 
-## Серверы, группы и конфигурация
+**Export** writes a validated JSON profile. **Import** checks the file and previews counts before offering:
 
-В **«Управлении хостами»** доступны редактирование ячеек, добавление сервера, удаление выбранных строк и очистка всего списка. Для выбора нескольких строк используйте Ctrl или Shift. Группы создаются автоматически из значений столбца «Группа»; пустая группа превращается в «Без группы». Имя и корректный IP обязательны, описание необязательно.
+- **Replace all**: import hosts and settings, retaining the current local profile identity.
+- **Add new**: preserve existing hosts/settings and add new IPs; duplicates keep existing names, groups and selection.
+- **Cancel**: leave the profile unchanged.
 
-**«Экспорт…»** сохраняет текущий проверенный список, выбор хостов и параметры в JSON. **«Импорт…»** сначала проверяет файл и показывает количество серверов и совпадений IP, затем предлагает:
+Up to 256 hosts and 4 MB config files are supported. Invalid/duplicate IPs and empty names are rejected.
 
-- **«Заменить все»** — заменить серверы и параметры содержимым файла. Идентификатор локального профиля сохраняется, поэтому настройки остаются в прежнем профиле.
-- **«Добавить»** — сохранить текущие серверы и параметры, добавить новые IP из файла. При совпадении IP сохраняется существующая запись с её именем, группой и выбором.
-- **«Отмена»** — оставить список без изменений.
+## Share an app with hosts inside
 
-После редактирования или импорта нажмите **«Сохранить»**. Отмена основного окна редактора отменяет его изменения. Неверный IP, пустое имя или повторяющийся IP не позволят сохранить конфигурацию. Поддерживаются до 256 серверов и конфигурации размером до 4 МБ.
+Configure hosts in a published portable build, stop monitoring, then choose **Export app with hosts** and save to a new filename. Transfer that EXE to a compatible PC: hosts, groups, enabled selection and timings are embedded, with no JSON import needed.
 
-## Как передать программу уже со своими хостами
+Each exported app gets a new profile identity. Local settings live in `%LOCALAPPDATA%\pingy\profiles\<id>.json`, with a previous version in `.bak`. Export the app again to share later changes. Copying an existing EXE in Explorer does not embed settings held only in the local profile.
 
-1. Запустите готовую переносимую сборку `pingy.exe`, настройте хосты и сохраните изменения.
-2. Остановите мониторинг и нажмите **«Создать копию .exe»**.
-3. Выберите новое имя, например `pingy-office.exe`.
-4. Передайте этот `.exe` на другой компьютер той же архитектуры. При первом запуске он уже содержит ваши серверы, группы, включённые галочки, интервал и тайм-аут. Импортировать JSON не требуется.
+## Compatibility
 
-Копия получает новый идентификатор профиля и хранит свои локальные настройки отдельно от исходной программы. Дальнейшие изменения сохраняются в профиле пользователя; чтобы передать обновлённый набор, снова создайте копию `.exe`. Простое копирование исходного файла через Проводник не включает изменения, которые лежат только в локальном профиле.
+Targets Windows 10/11 versions in the [.NET 10 supported OS list](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md#windows).
 
-Функция создания копии доступна в опубликованной сборке из одного файла. Для запуска из исходников через `dotnet run` сначала создайте переносимую сборку и откройте её.
-
-Локальные настройки находятся в `%LOCALAPPDATA%\pingy\profiles\<идентификатор>.json`. Если профиль уже сохранён на компьютере, при следующем запуске используется он; встроенный набор применяется при первом запуске профиля. После сохранения предыдущая версия настроек может оставаться рядом в файле `.bak`.
-
-## Совместимость
-
-Сборки предназначены для Windows 10/11 с подходящей архитектурой и версией ОС из [списка поддерживаемых .NET 10 систем](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md#windows). Поддержка конкретных редакций и обновлений Windows зависит от жизненного цикла ОС.
-
-| Сборка | Компьютер |
+| Build | Architecture |
 | --- | --- |
-| `win-x64` | Windows x64 на Intel или AMD; основной вариант |
-| `win-x86` | 32-битная Windows 10 |
+| `win-x64` | Intel/AMD 64-bit Windows; usual choice |
+| `win-x86` | 32-bit Windows 10 |
 | `win-arm64` | Windows ARM64 |
 
-Windows 7, 8 и 8.1 не поддерживаются. Приложение работает с правами текущего пользователя; корпоративные политики могут ограничивать запуск `.exe` или ICMP. Отсутствие ответа ICMP не обязательно означает, что сервер выключен: сервер или промежуточное оборудование могут не отвечать на пинг.
+Windows 7/8/8.1 are unsupported. Corporate policies can restrict EXE execution or ICMP. An ICMP timeout alone does not prove a server is down. DNS names, URLs and TCP ports are not supported.
 
-Проверяются только буквальные IP-адреса IPv4/IPv6 через ICMP. DNS-имена, URL и TCP-порты не поддерживаются. Серверы проверяются параллельно, с ограничением числа одновременных запросов. Если серия проверок занимает больше заданного интервала, следующая начинается после её завершения; серии не накладываются друг на друга.
+Up to 32 hosts are checked concurrently. Rounds never overlap, so a slow round can extend the interval. Stop cancels waiting immediately; Windows finishes already-issued ICMP requests in the background.
 
-## Сборка из исходников
+## Build and verify
 
-Для разработки нужны Windows и .NET SDK 10. Проекты используют C# и WinForms, без сторонних пакетов. Команды ниже выполняются из корня репозитория.
-
-Сборка и запуск:
+Requires Windows and .NET SDK 10. Open `Pingy.slnx` or run:
 
 ```powershell
 dotnet build .\src\Pingy.App\Pingy.App.csproj -c Release
-dotnet run --project .\src\Pingy.App\Pingy.App.csproj
+dotnet run --project .\tests\Pingy.Tests -c Release
+.\scripts\publish.ps1 -Runtime win-x64
 ```
 
-Проверки реализованы отдельным консольным проектом; ненулевой код выхода означает ошибку:
+Use `win-x86` or `win-arm64` for other architectures. Output: `artifacts\<Runtime>\pingy.exe`. The first runtime restore needs NuGet access. No third-party packages are used.
+
+Verify published executables and repeated host embedding:
 
 ```powershell
-dotnet run --project .\tests\Pingy.Tests\Pingy.Tests.csproj -c Release
+dotnet run --project .\tests\Pingy.Tests -c Release -- --portable-smoke artifacts/win-x64/pingy.exe artifacts/smoke
 ```
 
-Переносимая сборка с включённым .NET:
+`src/Pingy.App/defaults.json` is embedded at build time. `Assets/pingy.png` is the original artwork; `scripts/make-icon.ps1` converts it into a multi-resolution ICO without cropping or recoloring. The ICO is checked in; regeneration is optional.
 
-```powershell
-.\scripts\publish.ps1
-.\scripts\publish.ps1 -Runtime win-x86
-.\scripts\publish.ps1 -Runtime win-arm64
-```
+GitHub Actions tests/builds x64, x86 and ARM64 and uploads executable artifacts. x64/x86 run published-executable checks. ARM64 is cross-compiled, without an ARM UI runtime test.
 
-По умолчанию скрипт собирает `win-x64`. Результат находится в `artifacts\<Runtime>\pingy.exe`; распространять нужно этот файл. При первом восстановлении компонентов .NET для выбранной архитектуры сборке нужен доступ к источнику NuGet.
-
-Публикация использует `SelfContained=true`, `PublishSingleFile=true`, `PublishTrimmed=false` и `IncludeNativeLibrariesForSelfExtract=true`. Заводской список находится в `src/Pingy.App/defaults.json` и встраивается при сборке. Скрипт публикации не изменяет его.
-
-GitHub Actions запускается при push, pull request и вручную. На Windows проверяются консольные тесты, затем создаются три сборки и загружаются артефакты `pingy-win-x64`, `pingy-win-x86`, `pingy-win-arm64`. Workflow не создаёт GitHub Releases. Сборка ARM64 в CI выполняется перекрёстно; это не проверка запуска интерфейса на ARM-компьютере.
+Table references: [Fluent UI DataGrid](https://react.fluentui.dev/?path=/docs/components-datagrid--docs) and [WinForms border styles](https://learn.microsoft.com/en-us/dotnet/desktop/winforms/controls/change-the-border-and-gridline-styles-in-the-datagrid).

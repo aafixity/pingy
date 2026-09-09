@@ -3,9 +3,5 @@
   "profileId": "124273a1-7346-4842-8f3b-1310f314bf1d",
   "intervalMs": 1000,
   "timeoutMs": 1000,
-  "hosts": [
-    { "id": "75b01f51-cb02-4534-aac2-00da52e60eec", "name": "Этот компьютер", "address": "127.0.0.1", "group": "Локальная проверка", "description": "Loopback — проверка работы pingy без обращения к внешним серверам", "enabled": true },
-    { "id": "5fab1059-c563-4b6a-a756-d55e5a8dc3d5", "name": "Хост 1 (пример)", "address": "10.10.10.10", "group": "Примеры — замените адреса", "description": "Пример из задания, отключён по умолчанию", "enabled": false },
-    { "id": "8865543d-e78e-4b63-a8cb-1e7da9db6230", "name": "Хост 2 (пример)", "address": "10.10.10.11", "group": "Примеры — замените адреса", "description": "Пример из задания, отключён по умолчанию", "enabled": false }
-  ]
+  "hosts": []
 }

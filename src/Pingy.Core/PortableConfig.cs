@@ -21,7 +21,7 @@ public static class PortableConfig
         var sourcePath = Path.GetFullPath(sourceExe);
         var destinationPath = Path.GetFullPath(destinationExe);
         if (string.Equals(sourcePath, destinationPath, StringComparison.OrdinalIgnoreCase))
-            throw new IOException("Выберите другое имя файла: работающую программу нельзя заменить её копией.");
+            throw new IOException("Choose a different file name. The running application cannot replace itself.");
 
         // Serialize a new profile without modifying the user's current session.
         var profile = ConfigCodec.Parse(ConfigCodec.Serialize(config));
@@ -38,7 +38,7 @@ public static class PortableConfig
             {
                 var overlay = ReadOverlay(source);
                 if (overlay.BaseLength == 0)
-                    throw new FormatException("Исходный файл программы пуст.");
+                    throw new FormatException("The source application file is empty.");
                 source.Position = 0;
                 using var output = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                 CopyExactly(source, output, overlay.BaseLength);
@@ -71,18 +71,18 @@ public static class PortableConfig
         stream.ReadExactly(actualMagic);
         if (!actualMagic.SequenceEqual(Magic)) return (null, stream.Length);
         if (stream.Length < trailerLength)
-            throw new FormatException("Встроенная конфигурация повреждена: заголовок неполный.");
+            throw new FormatException("Embedded configuration is damaged: incomplete header.");
 
         stream.Position = stream.Length - trailerLength;
         Span<byte> lengthBytes = stackalloc byte[LengthBytes];
         stream.ReadExactly(lengthBytes);
         var jsonLength = BinaryPrimitives.ReadInt64LittleEndian(lengthBytes);
         if (jsonLength <= 0 || jsonLength > ConfigCodec.MaxConfigBytes || jsonLength > stream.Length - trailerLength)
-            throw new FormatException("Встроенная конфигурация повреждена: неверный размер.");
+            throw new FormatException("Embedded configuration is damaged: invalid size.");
 
         var baseLength = stream.Length - trailerLength - jsonLength;
         if (baseLength <= 0)
-            throw new FormatException("Встроенная конфигурация повреждена: исходная программа отсутствует.");
+            throw new FormatException("Embedded configuration is damaged: source application is missing.");
         stream.Position = baseLength;
         var jsonBytes = new byte[(int)jsonLength];
         stream.ReadExactly(jsonBytes);
@@ -92,7 +92,7 @@ public static class PortableConfig
         }
         catch (DecoderFallbackException ex)
         {
-            throw new FormatException("Встроенная конфигурация повреждена: неверный UTF-8.", ex);
+            throw new FormatException("Embedded configuration is damaged: invalid UTF-8.", ex);
         }
     }
 
@@ -103,7 +103,7 @@ public static class PortableConfig
         while (remaining > 0)
         {
             var read = source.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
-            if (read == 0) throw new EndOfStreamException("Исходный файл программы изменился во время копирования.");
+            if (read == 0) throw new EndOfStreamException("The source application changed while it was being copied.");
             destination.Write(buffer, 0, read);
             remaining -= read;
         }

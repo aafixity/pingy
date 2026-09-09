@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using Pingy.Core;
 
@@ -8,9 +9,11 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("en-US");
         ApplicationConfiguration.Initialize();
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-        Application.ThreadException += (_, e) => MessageBox.Show(e.Exception.Message, "pingy — ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        Application.ThreadException += (_, e) => UiDialogs.Show(e.Exception.Message, "Pingy", MessageBoxButtons.OK, MessageBoxIcon.Error);
         try
         {
             using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Pingy.defaults.json")!;
@@ -28,10 +31,11 @@ internal static class Program
             string? warning = null;
             try { config = store.Load() ?? seed; config.ProfileId = seed.ProfileId; }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or FormatException)
-            { warning = "Не удалось прочитать сохранённые настройки. Загружены хосты из программы.\n\n" + ex.Message; }
+            { warning = "Could not read saved settings. The embedded profile has been loaded.\n\n" + ex.Message; }
+            ProfileMigration.RemoveUnmodifiedSamples(config);
             Application.Run(new MainForm(config, store, warning));
         }
         catch (Exception ex)
-        { MessageBox.Show("Не удалось запустить pingy.\n\n" + ex.Message, "pingy", MessageBoxButtons.OK, MessageBoxIcon.Error); Environment.ExitCode = 1; }
+        { UiDialogs.Show("Could not start Pingy.\n\n" + ex.Message, "pingy", MessageBoxButtons.OK, MessageBoxIcon.Error); Environment.ExitCode = 1; }
     }
 }
